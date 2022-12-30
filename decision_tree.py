@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import sys
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 class Node():
     def __init__(self, feature=None, threshold=None, left_node=None, right_node=None, information_gain=None, value=None):
@@ -29,13 +30,12 @@ class DecisionTree():
         if current_depth <= self.max_depth and samples >= self.min_samples:
             # get_node_split returns the best split of the current node
             splitter = self.get_node_split(dataframe, samples, features)
-
-            if splitter['info_gain'] > 0:
+            if splitter['information_gain'] > 0:
                 # recursion to build the subtrees of the childeren nodes
-                left_child_subtree = self.buildTree(splitter['left'], current_depth + 1)
-                right_child_subtree = self.buildTree(splitter['right'], current_depth + 1)
+                left_child_subtree = self.buildTree(splitter['dataframe_left'], current_depth + 1)
+                right_child_subtree = self.buildTree(splitter['dataframe_right'], current_depth + 1)
                 # returns the decision node
-                return Node(splitter['feature'], splitter['threshold'], left_child_subtree, right_child_subtree, splitter['info_gain'])
+                return Node(splitter['feature'], splitter['threshold'], left_child_subtree, right_child_subtree, splitter['information_gain'])
 
         # if conditions are not met, then then the leaf value is returned from the Node class
         leaf_node_value = self.calc_leaf_node(Y)
@@ -54,31 +54,29 @@ class DecisionTree():
             for threshold in all_thresholds:
                 # split fuction returns the split of the left and right child nodes
                 dataframe_left, dataframe_right = self.split(dataframe, feature, threshold)
-                
                 # if childeren nodes are not 0
                 if len(dataframe_left) > 0 and len(dataframe_right) > 0:
                     y = dataframe[:, -1]
-                    left = dataframe_left[:, -1]
-                    right = dataframe_right[:, -1] 
+                    left_y = dataframe_left[:, -1]
+                    right_y = dataframe_right[:, -1] 
                     # calc_info_gain returns the information gain value (uses gini indexing)
-                    info_gain_count = self.calc_info_gain(y, left, right, "gini")
+                    info_gain_count = self.calc_info_gain(y, left_y, right_y, "gini")
                     # check for the current info gain is greater than the max info gain
                     if info_gain_count > info_gain_max:
                         splitter['feature'] = feature
                         splitter['threshold'] = threshold
-                        splitter['left'] = left
-                        splitter['right'] = right
+                        splitter['dataframe_left'] = dataframe_left
+                        splitter['dataframe_right'] = dataframe_right
+                        splitter['information_gain'] = info_gain_count
                         info_gain_max = info_gain_count
 
         return splitter
 
     def split(self, dataframe, feature, threshold):
         # splits into left and right childeren
-        left = np.array(row for row in dataframe if row[feature] <= threshold) # meets threshold condition
-        print(left)
-        right = np.array(row for row in dataframe if row[feature] > threshold) # greater than threshold
-        print(right)
-        return left, right
+        dataframe_left = np.array([row for row in dataframe if row[feature] <= threshold]) # meets threshold condition
+        dataframe_right = np.array([row for row in dataframe if row[feature] > threshold]) # greater than threshold
+        return dataframe_left, dataframe_right
 
     def calc_info_gain(self, parent_root, left_child_node, right_child_node, mode="entropy"):
         # relative sizes of child nodes with respect to parent nodes
@@ -89,32 +87,34 @@ class DecisionTree():
             # Pi = probability of class i
         # gini index is used to save computation time due to info gain using logarithm
         if mode == "gini":
-            info_gain = self.calc_gini(parent_root) - ( (left_node_weight * self.calc_gini(left_child_node)) + (right_node_weight * self.calc_gini(right_child_node)))
+            info_gain = self.calc_gini(parent_root) - ( (left_node_weight * self.calc_gini(left_child_node)) + (right_node_weight * self.calc_gini(right_child_node)) )
         else:
-            info_gain = self.calc_entropy(parent_root) - ( (left_node_weight * self.calc_entropy(left_child_node)) + (right_node_weight * self.entropy(right_child_node)))
+            info_gain = self.calc_entropy(parent_root) - ( (left_node_weight * self.calc_entropy(left_child_node)) + (right_node_weight * self.entropy(right_child_node)) )
 
         return info_gain
 
     def calc_gini(self, y):
-        g = 0
+        gini_index = 0
         n_label = np.unique(y)
 
         for i in n_label:
             p = len(y[y == i]) / len(y)
-            g += p**2
-        return 1 - g
+            gini_index += p**2
+            
+        return 1 - gini_index
 
     def calc_entropy(self, y):
-        e = 0
+        entropy = 0
         n_label = np.unique(y)
     
         for i in n_label:
             p = len(y[y == i]) / len(y)
-            e += -p * np.log2(p)
-        return e
+            entropy += -p * np.log2(p)
 
-    def calc_leaf_node(self, y):
-        Y = list(y)
+        return entropy
+
+    def calc_leaf_node(self, Y):
+        Y = list(Y)
         return max(Y, key=Y.count)
 
     def decision_tree_visualization(self, tree=None, indent=" "):
@@ -124,28 +124,28 @@ class DecisionTree():
         if tree.value is not None:
             print(tree.value)
         else:
-            print("X " + str(tree.feature_val), "<=", tree.threshold, "?", tree.information)
-            print("%sleft:" % (indent), end="")
-            self.decision_tree_visualization(tree.left, indent + indent)
-            print("%sright:" % (indent), end="")
-            self.decision_tree_visualization(tree.right, indent + indent)
+            print("X " + str(tree.feature), "<=", tree.threshold, "?", tree.information_gain)
+            print("%sleft_node:" % (indent), end="")
+            self.decision_tree_visualization(tree.left_node, indent + indent)
+            print("%sright_node:" % (indent), end="")
+            self.decision_tree_visualization(tree.right_node, indent + indent)
 
     def fitter(self, X, Y):
         dataframe = np.concatenate((X, Y), axis=1)
         self.root = self.buildTree(dataframe)
 
     def predict(self, X):
-        predict = [self.prediction(x, self.root) for x in X]
-        return predict
+        predictions = [self.prediction(x, self.root) for x in X]
+        return predictions
 
     def prediction(self, x, tree):
         if tree.value != None: 
             return tree.value
-        feature_num = x[tree.feature_val]
+        feature_num = x[tree.feature]
         if feature_num <= tree.threshold:
-            return self.prediction(x, tree.left)
+            return self.prediction(x, tree.left_node)
         else:
-            return self.prediction(x, tree.right)
+            return self.prediction(x, tree.right_node)
 
 
 dataframe = pd.read_csv("./test.csv")
@@ -153,8 +153,12 @@ dataframe = pd.read_csv("./test.csv")
 X = dataframe.iloc[:, :-1].values
 Y = dataframe.iloc[:, -1].values.reshape(-1,1)
 
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = 0.2, random_state=41)
+training_setX, testing_sample_setX, training_setY, testing_sample_setY = train_test_split(X, Y, test_size = .2, random_state=50)
 
 classify = DecisionTree(min_samples=3, max_depth=3)
-classify.fitter(X_train, Y_train)
+classify.fitter(training_setX, training_setY)
 classify.decision_tree_visualization()
+
+predictionY = classify.predict(testing_sample_setX) 
+accuracy = accuracy_score(testing_sample_setY, predictionY)
+print("Accuracy:", accuracy)

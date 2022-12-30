@@ -1,6 +1,11 @@
 import numpy as np
 import pandas as pd
 
+def get_samples(dataframe):
+    random_df = dataframe.sample(frac=1)
+    split_dataframe = np.array_split(random_df, 1000)
+    return split_dataframe
+
 def changeToBin(dataframe, column_name):
     dataframe[column_name] = np.where(dataframe[column_name] != "BENIGN", 1, dataframe[column_name])
     dataframe[column_name] = np.where(dataframe[column_name] == "BENIGN", 0, dataframe[column_name])
@@ -21,4 +26,7 @@ for col in dataframe.columns: # delete all features of type object
 dataframe = dataframe.drop_duplicates().reset_index(drop=True)
 
 dataframe = changeToBin(dataframe, " Label")
-dataframe.to_csv("test.csv")
+samples = get_samples(dataframe)
+dataframe = samples[0]
+print(dataframe)
+# dataframe.to_csv("test.csv")
