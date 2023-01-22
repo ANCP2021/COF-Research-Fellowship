@@ -151,8 +151,11 @@ class DecisionTree():
 dataframe = pd.read_csv("./test.csv")
 
 X = dataframe.iloc[:, :-1].values
+print("X output")
+print(X)
 Y = dataframe.iloc[:, -1].values.reshape(-1,1)
-
+print("Y output")
+print(Y)
 training_setX, testing_sample_setX, training_setY, testing_sample_setY = train_test_split(X, Y, test_size = .2, random_state=50)
 
 classify = DecisionTree(min_samples=3, max_depth=3)
