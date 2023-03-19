@@ -2,11 +2,6 @@ import pandas as pd
 import numpy as np
 import glob
 
-def changeToBin(dataframe, column_name):
-    dataframe[column_name] = np.where(dataframe[column_name] != "BENIGN", 1, dataframe[column_name])
-    dataframe[column_name] = np.where(dataframe[column_name] == "BENIGN", 0, dataframe[column_name])
-    return dataframe
-
 # Names of type of traffic and respective names in dataset
 # BENIGN = BENIGN                           
 # UDP-lag = UDP-lag                         
@@ -27,7 +22,7 @@ webDDoS, benign, ntp, ssdp, snmp, dns, ldap, netBios, mssql, portmap, syn, tftp,
 debug = 1
 attack_type = "WebDDoS"
 attack_samples = 260000
-dataframe = pd.read_csv("./CSVs/Portmap_03-11.csv")
+dataframe = pd.read_csv("./../CSVs/Portmap_03-11.csv")
 dataframe = dataframe.iloc[0:0]
 usage_data = pd.read_csv("./data.csv")
 
@@ -53,8 +48,8 @@ relevant_col = [col for col in dataframe.columns if
     'Fwd IAT Max' in col or
     'Flow IAT Std' in col]
 
-for infile in glob.glob("./CSVs/*.csv"):
-    if infile == "./CSVs/UDPLag_01-12.csv":
+for infile in glob.glob("./../CSVs/*.csv"):
+    if infile == "./../CSVs/UDPLag_01-12.csv":
         for chunk in pd.read_csv(infile, chunksize=500000): 
             chunk = chunk.loc[:, (chunk != 0).any(axis=0)] # delete all 0 features
             chunk = chunk.dropna(axis=1, how='all') # delete all NAN features
