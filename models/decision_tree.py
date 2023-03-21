@@ -29,7 +29,9 @@ class DecisionTree():
         # stopping conditions for not splitting the tree farther
         if current_depth <= self.max_depth and samples >= self.min_samples:
             # get_node_split returns the best split of the current node
+            print("node split called")
             splitter = self.get_node_split(dataframe, samples, features)
+            print("splitter:", splitter)
             if splitter['information_gain'] > 0:
                 # recursion to build the subtrees of the childeren nodes
                 left_child_subtree = self.buildTree(splitter['dataframe_left'], current_depth + 1)
@@ -53,6 +55,7 @@ class DecisionTree():
             # loops through all features only present in the dataset
             for threshold in all_thresholds:
                 # split fuction returns the split of the left and right child nodes
+                print("split called")
                 dataframe_left, dataframe_right = self.split(dataframe, feature, threshold)
                 # if childeren nodes are not 0
                 if len(dataframe_left) > 0 and len(dataframe_right) > 0:
@@ -148,7 +151,7 @@ class DecisionTree():
             return self.prediction(x, tree.right_node)
 
 
-dataframe = pd.read_csv("./test.csv")
+dataframe = pd.read_csv("./../preprocessing/data_bin.csv")
 
 X = dataframe.iloc[:, :-1].values
 print("X output")
