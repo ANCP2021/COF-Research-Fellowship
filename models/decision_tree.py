@@ -152,6 +152,8 @@ class DecisionTree():
 
 
 dataframe = pd.read_csv("./../preprocessing/data_bin.csv")
+dataframe = dataframe[dataframe.columns.drop(list(dataframe.filter(regex='Unnamed')))]
+print(dataframe)
 
 X = dataframe.iloc[:, :-1].values
 print("X output")
